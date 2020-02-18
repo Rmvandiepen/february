@@ -1,6 +1,14 @@
 import enum
 
 
+class Quiting(Exception):
+    pass
+
+
+class BackToMenu(Exception):
+    pass
+
+
 class Direction(enum.Enum):
     VERTICAL = 0
     HORIZONTAL = 1

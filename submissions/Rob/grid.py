@@ -19,6 +19,7 @@ class Grid:
     creating_bridges = False
     color_solved_cells = False
     show_min_bridges = False
+    remove_output_spaces = False
 
     def __init__(self, width, height, cells, use_advanced=False):
         self.height = height
@@ -132,38 +133,53 @@ class Grid:
 
         for cell in self.cells:
             result[cell.y][cell.x] = str(cell.value)
-            if self.color_solved_cells and cell.solved:
-                result[cell.y][cell.x] = "\u001b[32m" + result[cell.y][cell.x] + "\u001b[0m"
+            if self.color_solved_cells:
+                if cell.solved:
+                    result[cell.y][cell.x] = f'\u001b[32m' + result[cell.y][cell.x] + "\u001b[0m"
+                elif cell.value_left() < 0:
+                    result[cell.y][cell.x] = f'\u001b[31m' + result[cell.y][cell.x] + "\u001b[0m"
 
-            for connection in cell.connections:
-                colored = False
-                if connection.solved and connection.bridges > 0:
-                    bridges_to_draw = connection.bridges
-                elif self.show_min_bridges and connection.min_bridges > 0:
-                    bridges_to_draw = connection.min_bridges
-                    colored = True
-                else:
-                    continue
+        for connection in self._connections:
+            colored = False
+            if connection.solved and connection.bridges > 0:
+                bridges_to_draw = connection.bridges
+            elif self.show_min_bridges and connection.min_bridges > 0:
+                bridges_to_draw = connection.min_bridges
+                colored = True
+            else:
+                continue
 
-                if connection.direction == Direction.HORIZONTAL:
-                    for x in range(connection.cell1.x + 1, connection.cell2.x):
-                        result[connection.cell1.y][x] = drawing_map[Direction.HORIZONTAL][bridges_to_draw]
-                        if colored:
-                            result[connection.cell1.y][x] = u"\u001b[37m" + result[connection.cell1.y][x] + u"\u001b[0m"
-                else:
-                    for y in range(connection.cell1.y + 1, connection.cell2.y):
-                        result[y][connection.cell1.x] = drawing_map[Direction.VERTICAL][bridges_to_draw]
-                        if colored:
-                            result[y][connection.cell1.x] = u"\u001b[37m" + result[y][connection.cell1.x] + u"\u001b[0m"
+            if connection.direction == Direction.HORIZONTAL:
+                for x in range(connection.cell1.x + 1, connection.cell2.x):
+                    result[connection.cell1.y][x] = drawing_map[Direction.HORIZONTAL][bridges_to_draw]
+                    if colored:
+                        result[connection.cell1.y][x] = u"\u001b[37m" + result[connection.cell1.y][x] + u"\u001b[0m"
+            else:
+                for y in range(connection.cell1.y + 1, connection.cell2.y):
+                    result[y][connection.cell1.x] = drawing_map[Direction.VERTICAL][bridges_to_draw]
+                    if colored:
+                        result[y][connection.cell1.x] = u"\u001b[37m" + result[y][connection.cell1.x] + u"\u001b[0m"
 
         if self.show_cursor and 0 <= self.cursor_y < self.height and 0 <= self.cursor_x < self.width:
             if self.creating_bridges:
                 result[self.cursor_y][self.cursor_x] = "\u001b[41m" + result[self.cursor_y][self.cursor_x] + "\u001b[0m"
             else:
                 result[self.cursor_y][self.cursor_x] = "\u001b[44m" + result[self.cursor_y][self.cursor_x] + "\u001b[0m"
-        return '+' + '-' * (self.width * 2 + 1) + '+\n' \
-               + '| ' + ' |\n| '.join([u' '.join(cell) for cell in result]) + ' |\n' \
-               + '+' + '-' * (self.width * 2 + 1) + '+'
+
+        result = '+' + '-' * (self.width * 2 + 1) + '+\n' \
+                 + '| ' + ' |\n| '.join([u' '.join(cell) for cell in result]) + ' |\n' \
+                 + '+' + '-' * (self.width * 2 + 1) + '+'
+
+        if self.remove_output_spaces:
+            result = result.replace(' ' + drawing_map[Direction.HORIZONTAL][1],
+                                    drawing_map[Direction.HORIZONTAL][1] * 2)
+            result = result.replace(drawing_map[Direction.HORIZONTAL][1] + ' ',
+                                    drawing_map[Direction.HORIZONTAL][1] * 2)
+            result = result.replace(' ' + drawing_map[Direction.HORIZONTAL][2],
+                                    drawing_map[Direction.HORIZONTAL][2] * 2)
+            result = result.replace(drawing_map[Direction.HORIZONTAL][2] + ' ',
+                                    drawing_map[Direction.HORIZONTAL][2] * 2)
+        return result
 
     def export(self):
         size = f'{self.width}x{self.height}'

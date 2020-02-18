@@ -1,3 +1,5 @@
+import os
+
 from common import Direction, ChainUnsolved
 
 
@@ -27,8 +29,9 @@ class Connection:
         self.bridges = bridges
 
         if bridges > 0 and self.grid.solve_slowly:
+            os.system('clear')
             print(self.grid)
-            input('Press return to continue.')
+            input('Press return for the next step.')
 
         if cascade:
             if bridges > 0:

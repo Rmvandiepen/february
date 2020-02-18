@@ -29,7 +29,7 @@ def select_puzzles(puzzles):
 
 def select_yes_no(title, default='no'):
     while True:
-        txt = input(f'{title}: ({default})') or default
+        txt = input(f'{title} ({default}): ') or default
         return True if txt in ('yes', 'y', '1', 'true', 'True') else False
 
 

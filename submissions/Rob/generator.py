@@ -6,7 +6,7 @@ from random import randint
 
 import input_handling
 from cell import Cell
-from common import Direction
+from common import Direction, Quiting, BackToMenu
 from grid import Grid
 
 
@@ -101,9 +101,11 @@ def generate_puzzles(width, height, num_of_cells, amount_of_puzzles, output_file
             if grid.advanced:
                 print(f'Required advanced solving!!!!!!!')
 
-            txt = input('Want to (c)ontinue, (s)olve slowly or (e)xit?')
-            if txt == 'e':
-                exit()
+            txt = input('Want to (c)ontinue, (s)olve slowly, (m)enu or (q)uit?')
+            if txt == 'm':
+                raise BackToMenu()
+            if txt == 'q':
+                raise Quiting()
             elif txt == 's':
                 grid = Grid(width, height, final_cells, use_advanced=True)
                 grid.solve_slowly = True
