@@ -1,7 +1,7 @@
 import time
 
 import input_handling
-from common import readfile
+from common import readfile, Unsolvable
 from grid import Grid
 
 
@@ -18,6 +18,7 @@ def solve():
     print_results = input_handling.select_yes_no('Print result', 'yes')
     slow_solve = input_handling.select_yes_no('Slow solve')
     show_min_bridges = input_handling.select_yes_no('Show min bridges')
+    use_backtracking = input_handling.select_yes_no('Use backtracking')
 
     before_solve = time.time()
     for i, puzzle in enumerate(puzzles):
@@ -27,12 +28,19 @@ def solve():
         if show_min_bridges:
             grid.show_min_bridges = True
 
-        solved = grid.solve()
+        if use_backtracking:
+            solved = grid.backtracking()
+        else:
+            try:
+                solved = grid.solve()
+            except Unsolvable:
+                solved = False
         if print_results:
             print('Cells: ', len(grid.cells))
             print(grid)
         if solved:
-            print(f'Solved {i}' + (' (Required advanced techniques)' if grid.advanced else ''))
+            pass
+            # print(f'Solved {i}' + (' (Required advanced techniques)' if grid.advanced else ''))
         else:
             print(f'Couldn\'t solve {i}')
 

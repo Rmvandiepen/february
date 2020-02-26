@@ -6,7 +6,7 @@ from random import randint
 
 import input_handling
 from cell import Cell
-from common import Direction, Quiting, BackToMenu
+from common import Direction, Quiting, BackToMenu, Unsolvable
 from grid import Grid
 
 
@@ -59,8 +59,8 @@ def init_generate_puzzles():
     settings = None
 
     print('Please fill in the following values.')
-    width = input_handling.input_number('Width', default=width)
-    height = input_handling.input_number('Height', default=height)
+    width = input_handling.input_number_range('Width', default=width)
+    height = input_handling.input_number_range('Height', default=height)
     amount_of_cells = input_handling.input_number_range('Amount of cells', default=amount_of_cells)
     amount_of_puzzles = input_handling.input_number('Amount of puzzles', default=amount_of_puzzles)
     output_file = input_handling.input_string('Output file', output_file)
@@ -73,22 +73,30 @@ def init_generate_puzzles():
     generate_puzzles(width, height, amount_of_cells, amount_of_puzzles, output_file, use_settings=settings)
 
 
-def generate_puzzles(width, height, num_of_cells, amount_of_puzzles, output_file, use_settings=None):
+def generate_puzzles(width_range, height_range, num_of_cells_range, amount_of_puzzles, output_file, use_settings=None):
     global settings
     settings = use_settings or Settings()
     amount_generated = 0
+
     while True:
+        num_of_cells = randint(num_of_cells_range['min'], num_of_cells_range['max'])
+        width = randint(width_range['min'], width_range['max'])
+        height = randint(height_range['min'], height_range['max'])
+
+        print(f'Generating with {num_of_cells} Cells on a {width} x {height} grid.')
+        start_time = time.time()
         try:
             final_cells = do_generation(width, height, num_of_cells)
         except RecreateCells:
-            continue
+            raise Exception('This never happens!')
 
         grid = Grid(width, height, final_cells, use_advanced=True)
         if not grid.solve():
-            printt('Still failed to solve!!')
-            continue
+            raise Exception('This never happens as well!')
 
+        generation_time = int(time.time() - start_time)
         if settings.print_grid_after_solve:
+            print(f'Generated puzzle {amount_generated} in {generation_time} seconds.')
             print(grid)
 
         with open(f'submissions/Rob/output_files/{output_file}.txt', 'a') as file:
@@ -119,8 +127,6 @@ def generate_puzzles(width, height, num_of_cells, amount_of_puzzles, output_file
 
 def do_generation(width, height, num_of_cells):
     global settings
-
-    num_of_cells = randint(num_of_cells['min'], num_of_cells['max'])
     tries2 = 0
     while True:
         tries2 += 1
@@ -205,12 +211,16 @@ def generate_connections(width, height, from_cells):
                 'y': cell.y,
                 'value': cell.value
             } for cell in grid.cells], use_advanced=True)
-            if tmp_grid.solve():
-                return [{
-                    'x': cell.x,
-                    'y': cell.y,
-                    'value': cell.value
-                } for cell in grid.cells]
+            try:
+                if tmp_grid.solve():
+                    return [{
+                        'x': cell.x,
+                        'y': cell.y,
+                        'value': cell.value
+                    } for cell in grid.cells]
+            except Unsolvable:
+                raise RecreateConnecions()
+
             printt('No cells to process. Falling back cells with empty connections')
             cells_to_process = [cell for cell in grid.cells if len(empty_connections_for_cell(cell))]
 

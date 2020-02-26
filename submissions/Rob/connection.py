@@ -1,6 +1,6 @@
 import os
 
-from common import Direction, ChainUnsolved
+from common import Direction, ChainUnsolved, Unsolvable
 
 
 class Connection:
@@ -38,8 +38,7 @@ class Connection:
                 for intersection in self.intersections:
                     intersection.solve(0)
 
-            for connection in self.cell1.connections + self.cell2.connections:
-                connection.calculate_min_and_max()
+            self.cascade()
 
     @property
     def direction(self):
@@ -68,47 +67,65 @@ class Connection:
         max_f_c1 = self.cell1.value - min_c1
         min_f_c2 = self.cell2.value - max_c2
         max_f_c2 = self.cell2.value - min_c2
+
         min_t = max(min_f_c1, min_f_c2)
         max_t = min(max_f_c1, max_f_c2)
-        self.min_bridges = max(self.min_bridges, min_t)
-        self.max_bridges = min(self.max_bridges, max_t)
 
-        if self.min_bridges == self.max_bridges:
-            self.solve(self.min_bridges)
+        if min_t > max_t:
+            raise Unsolvable()
 
-        if self.min_bridges > 0:
+        if self.min_bridges == 0 and min_t > 0:
             for intersection in self.intersections:
                 intersection.solve(0)
 
-        # if self.min_bridges > 2:
-        #     import pdb
-        #     pdb.set_trace()
+        changed = False
+        if min_t > self.min_bridges:
+            self.min_bridges = min_t
+            changed = True
+        if max_t < self.max_bridges:
+            self.max_bridges = max_t
+            changed = True
+
+        if self.min_bridges == self.max_bridges:
+            self.solve(self.min_bridges)
+            return
+        elif changed:
+            self.cascade()
 
         self.ensure_single_chain()
+
+    def cascade(self):
+        for connection in self.cell1.connections + self.cell2.connections:
+            if connection == self:
+                continue
+            connection.calculate_min_and_max()
 
     def ensure_single_chain(self):
         if not self.grid.advanced:
             return
 
-        if not self.solved and self.max_bridges > 0:
-            before_min = self.min_bridges
-            before_max = self.max_bridges
+        if self.solved:
+            return
 
-            self.bridges = self.max_bridges
-            if not self.cell1.solved or not self.cell2.solved:
-                self.bridges = None
-                return
-            all_cells_if_connected = {self.cell1, self.cell2}
-            try:
-                all_cells_if_connected = set(
-                    list(self.cell1.get_connected_cells(all_cells_if_connected)) +
-                    list(self.cell2.get_connected_cells(all_cells_if_connected))
-                )
-                if len(all_cells_if_connected) != len(self.grid.cells):
-                    self._unsolve(before_min, before_max)
-                    self.max_bridges -= 1
-            except ChainUnsolved:
-                self.bridges = None
+        if self.max_bridges < 1:
+            return
+
+        self.bridges = self.max_bridges
+        if not self.cell1.solved or not self.cell2.solved:
+            self.bridges = None
+            return
+
+        all_cells_if_connected = {self.cell1, self.cell2}
+        try:
+            all_cells_if_connected = set(
+                list(self.cell1.get_connected_cells(all_cells_if_connected)) +
+                list(self.cell2.get_connected_cells(all_cells_if_connected))
+            )
+            if len(all_cells_if_connected) != len(self.grid.cells):
+                self.max_bridges -= 1
+        except ChainUnsolved:
+            pass
+        self.bridges = None
 
     def _unsolve(self, bmin, bmax):
         self.min_bridges = bmin

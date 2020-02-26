@@ -9,6 +9,10 @@ class BackToMenu(Exception):
     pass
 
 
+class Unsolvable(Exception):
+    pass
+
+
 class Direction(enum.Enum):
     VERTICAL = 0
     HORIZONTAL = 1

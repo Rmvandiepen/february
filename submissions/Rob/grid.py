@@ -88,6 +88,8 @@ class Grid:
     @property
     def solved(self):
         all_cells_solved = all([cell.solved for cell in self.cells])
+        if not all_cells_solved:
+            return False
 
         try:
             cells_in_chain = list(self.cells[0].get_connected_cells({}))
@@ -113,18 +115,22 @@ class Grid:
     def backtracking(self):
         self.make_connections()
 
-        def do():
-            for connection in self._connections:
-                if not connection.solved:
+        def do(offset):
+            for i, connection in enumerate(self._connections[offset:]):
+                if connection.bridges is None:
                     for bridges in range(0, min(2, connection.cell1.value_left(), connection.cell2.value_left()) + 1):
-                        connection.solve(bridges, cascade=False)
-                        print(self)
-                        input('Press return to continue')
-                        do()
-                        connection._unsolve(0, 2)
+                        connection.bridges = bridges
+                        do(offset + i + 1)
+                        connection.bridges = None
 
-        do()
-        print(self)
+            if self.solved:
+                raise Exception()
+
+        try:
+            do(0)
+        except Exception:
+            return True
+        return False
 
     def __repr__(self):
         result = []
